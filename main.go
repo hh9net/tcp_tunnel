@@ -20,11 +20,11 @@ func main() {
 	    continue
 	}
 
-	d_tcpAddr, _ := net.ResolveTCPAddr("tcp4", "10.32.39.205:3306")
+	d_tcpAddr, _ := net.ResolveTCPAddr("tcp4", "")
 	d_conn, err := net.DialTCP("tcp", nil, d_tcpAddr)
 	if err != nil {
 	    fmt.Println(err)
-	    s_conn.Write([]byte("can't connect 10.32.39.205:3306"))
+	    s_conn.Write([]byte("can't connect "))
 	    s_conn.Close()
 	    continue
 	}
