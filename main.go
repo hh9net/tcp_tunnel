@@ -5,30 +5,10 @@ import (
     "io"
     "net"
     "os"
+    "tcp_tunnel/server"
 )
 
 func main() {
-    l, err := net.Listen("tcp", fmt.Sprintf("%s:%s", ListenIp, ListenPort))
-    if err != nil {
-	fmt.Println(err, err.Error())
-	os.Exit(0)
-    }
-
-    for {
-	s_conn, err := l.Accept()
-	if err != nil {
-	    continue
-	}
-
-	d_tcpAddr, _ := net.ResolveTCPAddr("tcp4", "")
-	d_conn, err := net.DialTCP("tcp", nil, d_tcpAddr)
-	if err != nil {
-	    fmt.Println(err)
-	    s_conn.Write([]byte("can't connect "))
-	    s_conn.Close()
-	    continue
-	}
-	go io.Copy(s_conn, d_conn)
-	go io.Copy(d_conn, s_conn)
-    }
+    go server.StartServer()
+    select{}
 }
