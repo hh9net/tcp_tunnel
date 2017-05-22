@@ -41,11 +41,11 @@ func (tc *TcpConnection) ReadOpcode() (uint8, error) {
 	if tc.protoBuffer == nil {
 		return nil, errors.New("protoBuffer is nil")
 	}
-	opcode := int8(tc.protoBuffer[0:protoOpcodeBufferLen])
+	opcode := uint8(tc.protoBuffer[0:protoOpcodeBufferLen])
 	return opcode, nil
 }
 
-func (tc *TcpConnection) ReadDestIp() (uint64, error) {
+func (tc *TcpConnection) ReadDestIp() (uint64, error)  {
 	if tc.protoBuffer == nil {
 		return nil, errors.New("protoBuffer is nil")
 	}
@@ -69,4 +69,9 @@ func (tc *TcpConnection) ReadData() error {
 		return nil, err
 	}
 	return data, nil
+}
+
+func (tc *TcpConnection) RemoteIP() string {
+	tcpAddr := tc.RemoteAddr().(*net.TCPAddr)
+	return tcpAddr.IP.String()
 }
