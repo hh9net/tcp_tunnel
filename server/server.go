@@ -8,51 +8,55 @@ import (
 	"tcp_tunnel/logic"
 )
 
-type Server struct{}
-
-func StartServer() {
-	s := new(Server)
-	s.Server()
-}
-
-func (srv *Server) Server() {
+func TunnelListen() {
 	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%s", config.ListenIp, config.ListenPort))
 	if err != nil {
 		panic("listen ip is nil")
 	}
 	for {
-		tc, err := listener.Accept()
+		tcpConntection, err := logic.Accept(listener)
 		if err != nil {
 			continue
 		}
-		tcpConn := logic.NewTcpContection(tc)
-		go srv.dispatch(tcpConn)
+		go server(NewTunnel(tcpConntection))
 	}
 }
 
-func (srv *Server) dispatch(tcpConn *logic.TcpConnection) {
-	if err := tcpConn.ReadProtoBuffer(); err != nil {
-		goto failed
-	}
-	opcode, err := tcpConn.ReadOpcode()
-	if err != nil {
-		goto failed
-	}
-	tip := logic.NewTip(opcode)
-	if
+type Tunnel struct {
+	tcpConnection *logic.TcpConnection
+	tipBuffer     *logic.TipBuffer
+}
 
-	d_tcpAddr, _ := net.ResolveTCPAddr("tcp4", "")
-	d_conn, err := net.DialTCP("tcp", nil, d_tcpAddr)
-	if err != nil {
-		fmt.Println(err)
-		s_conn.Write([]byte("can't connect "))
-		s_conn.Close()
-
+func NewTunnel(tcpConn *logic.TcpConnection) *Tunnel {
+	return &Tunnel{
+		tcpConnection: tcpConn,
 	}
-	go io.Copy(s_conn, d_conn)
-	go io.Copy(d_conn, s_conn)
+}
 
-	failed:
-	tcpConn.Close()
-	return
+func server(tunnel *Tunnel) {
+	for {
+		tipRequest := logic.NewTipBuffer()
+		if err := tipRequest.ReadFrom(tunnel.tcpConnection); err != nil {
+			continue
+		}
+		switch tipRequest.Opcode {
+		case logic.OpcodeBind:
+
+		}
+	}
+	//
+	//d_tcpAddr, _ := net.ResolveTCPAddr("tcp4", "")
+	//d_conn, err := net.DialTCP("tcp", nil, d_tcpAddr)
+	//if err != nil {
+	//	fmt.Println(err)
+	//	s_conn.Write([]byte("can't connect "))
+	//	s_conn.Close()
+	//
+	//}
+	//go io.Copy(s_conn, d_conn)
+	//go io.Copy(d_conn, s_conn)
+	//
+	//failed:
+	//tcpConn.Close()
+	//return
 }

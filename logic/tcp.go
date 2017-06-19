@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io/ioutil"
 	"net"
+	"idgen/logic"
 )
 
 const (
@@ -17,6 +18,15 @@ const (
 type TcpConnection struct {
 	*net.TCPConn
 	protoBuffer []byte
+}
+
+func Accept(listener *net.Listener) (*TcpConnection, error) {
+	tc, err := listener.Accept()
+	if err != nil {
+		nil, errors.New("listen error")
+	}
+	tcpConn := NewTcpContection(tc)
+	return tcpConn, nil
 }
 
 func NewTcpContection(tcpConn *net.TCPConn) *TcpConnection {

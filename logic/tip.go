@@ -4,6 +4,8 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"log"
+	"errors"
 )
 
 const (
@@ -13,18 +15,29 @@ const (
 	OpcodeTransmit
 )
 
-type Tip struct {
+type TipBuffer struct {
 	Opcode   uint8
 	DestIp   uint64
 	DestPort uint16
 	Data     []byte
 }
 
-func NewTip(op int8) *Tip {
-	return &Tip{Opcode: op}
+func NewTipBuffer() *TipBuffer {
+	return &TipBuffer{}
 }
 
-func (t *Tip) StreamTip() []byte {
+func (t *TipBuffer) ReadFrom(tcpConnection *TcpConnection) error {
+	if err := tcpConnection.ReadProtoBuffer(); err != nil {
+		errors.New("read proto buffer error.")
+	}
+	t.Opcode, err = tcpConnection.ReadOpcode()
+	if err != nil {
+		errors.New("read opcode error.")
+	}
+	return nil
+}
+
+func (t *TipBuffer) StreamTip() []byte {
 	switch t.Opcode {
 	case OpcodeBind:
 		buffer := make([]byte, 0, 1)
@@ -34,7 +47,7 @@ func (t *Tip) StreamTip() []byte {
 	return []byte{}
 }
 
-func (t *Tip) WriteTo(tcpConn *TcpConnection) error {
+func (t *TipBuffer) WriteTo(tcpConn *TcpConnection) error {
 	buffer := t.StreamTip()
 	_, err := tcpConn.Write(buffer)
 	return err

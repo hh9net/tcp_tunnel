@@ -9,6 +9,6 @@ import (
 )
 
 func main() {
-	go server.StartServer()
+	go server.TunnelListen()
 	select {}
 }
