@@ -63,7 +63,7 @@ func (tc *TcpConnection) ReadDestIp() (uint64, error)  {
 	return destIp, nil
 }
 
-func (tc *TcpConnection) ReadPort() (uint16, error) {
+func (tc *TcpConnection) ReadDestPort() (uint16, error) {
 	if tc.protoBuffer == nil {
 		return nil, errors.New("protoBuffer is nil")
 	}
@@ -73,7 +73,7 @@ func (tc *TcpConnection) ReadPort() (uint16, error) {
 	return destPort, nil
 }
 
-func (tc *TcpConnection) ReadData() error {
+func (tc *TcpConnection) ReadData() ([]byte, error) {
 	data, err := ioutil.ReadAll(tc.TCPConn)
 	if err != nil {
 		return nil, err

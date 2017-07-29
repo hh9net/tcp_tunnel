@@ -28,29 +28,39 @@ func NewTipBuffer() *TipBuffer {
 
 func (t *TipBuffer) ReadFrom(tcpConnection *TcpConnection) error {
 	if err := tcpConnection.ReadProtoBuffer(); err != nil {
-		errors.New("read proto buffer error.")
+		return errors.New("read proto buffer error.")
 	}
 	t.Opcode, err = tcpConnection.ReadOpcode()
 	if err != nil {
-		errors.New("read opcode error.")
+		return errors.New("read opcode error.")
+	}
+	switch t.Opcode {
+	case OpcodeBind:
+		t.DestIp, err = tcpConnection.ReadDestIp()
+		if err != nil {
+			return errors.New("read destIP error.")
+		}
+		t.DestPort, err = tcpConnection.ReadDestPort()
+		if err != nil {
+			return errors.New("read destPort error.")
+		}
+	case OpcodeTransmit:
+		t.Data, err = tcpConnection.ReadData()
+		if err != nil {
+			return errors.New("read data error.")
+		}
 	}
 	return nil
 }
 
-func (t *TipBuffer) StreamTip() []byte {
-	switch t.Opcode {
-	case OpcodeBind:
+func (t *TipBuffer) StreamTip(opcode int) []byte {
+	switch opcode {
+	case OpcodeBindAck:
 		buffer := make([]byte, 0, 1)
 		buffer[0] = byte(OpcodeBindAck)
 		return buffer
 	}
 	return []byte{}
-}
-
-func (t *TipBuffer) WriteTo(tcpConn *TcpConnection) error {
-	buffer := t.StreamTip()
-	_, err := tcpConn.Write(buffer)
-	return err
 }
 
 func IP4ToInt64(ipv4 net.IP) int64 {

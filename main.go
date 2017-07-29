@@ -1,12 +1,13 @@
 package main
 
 import (
-	"fmt"
-	"io"
-	"net"
-	"os"
+	"runtime"
 	"tcp_tunnel/server"
 )
+
+func init() {
+	runtime.GOMAXPROCS(runtime.NumCPU())
+}
 
 func main() {
 	go server.TunnelListen()
