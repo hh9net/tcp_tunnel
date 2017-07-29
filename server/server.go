@@ -46,9 +46,13 @@ func server(tunnel *Tunnel) {
 			goto failed
 		}
 	}
+<<<<<<< HEAD
 	failed:
 	return
 	//
+=======
+	
+>>>>>>> b063718f93dcab128e33efb837f01547850e8b37
 	//d_tcpAddr, _ := net.ResolveTCPAddr("tcp4", "")
 	//d_conn, err := net.DialTCP("tcp", nil, d_tcpAddr)
 	//if err != nil {
