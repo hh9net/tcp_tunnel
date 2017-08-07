@@ -1,11 +1,12 @@
 package logic
 
 import (
+	"encoding/binary"
+	"errors"
+	"log"
 	"net"
 	"strconv"
 	"strings"
-	"log"
-	"errors"
 )
 
 const (
@@ -61,6 +62,20 @@ func (t *TipBuffer) StreamTip(opcode int) []byte {
 		return buffer
 	}
 	return []byte{}
+}
+
+func (t *TipBuffer) TransmitStream(ip, port string, data []byte) []byte {
+	t.Opcode = OpcodeTransmit
+	t.DestIp = ip
+	t.DestPort = port
+	t.Data = data
+
+	buff := make([]byte, ProtoOpcodeBufferLen+ProtoDestIpBufferLen+ProtoDestPortBufferLen+len(data))
+	buff[0:ProtoOpcodeBufferLen] = t.Opcode
+	binary.BigEndian.PutUint64(buff[ProtoOpcodeBufferLen:ProtoOpcodeBufferLen+ProtoDestIpBufferLen], t.DestIp)
+	binary.BigEndian.PutUint16(buff[ProtoOpcodeBufferLen+ProtoDestIpBufferLen:TcpProtoBufferLen], t.DestPort)
+	copy(buff[TcpProtoBufferLen:], data)
+	return buff
 }
 
 func IP4ToInt64(ipv4 net.IP) int64 {

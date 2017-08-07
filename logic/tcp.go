@@ -9,10 +9,10 @@ import (
 )
 
 const (
-	tcpProtoBufferLen      = 11
-	protoOpcodeBufferLen   = 1
-	protoDestIpBufferLen   = 8
-	protoDestPortBufferLen = 2
+	TcpProtoBufferLen      = 11
+	ProtoOpcodeBufferLen   = 1
+	ProtoDestIpBufferLen   = 8
+	ProtoDestPortBufferLen = 2
 )
 
 type TcpConnection struct {
@@ -30,11 +30,11 @@ func Accept(listener *net.Listener) (*TcpConnection, error) {
 }
 
 func NewTcpContection(tcpConn *net.TCPConn) *TcpConnection {
-	return &TcpConnection{TCPConn: tcpConn, protoBuffer: make([]byte, tcpProtoBufferLen)}
+	return &TcpConnection{TCPConn: tcpConn, protoBuffer: make([]byte, TcpProtoBufferLen)}
 }
 
 func (tc *TcpConnection) ReadProtoBuffer() error {
-	left := tcpProtoBufferLen
+	left := TcpProtoBufferLen
 	for left > 0 {
 		n, err := tc.TCPConn.Read(tc.protoBuffer)
 		if err != nil {
@@ -51,7 +51,7 @@ func (tc *TcpConnection) ReadOpcode() (uint8, error) {
 	if tc.protoBuffer == nil {
 		return nil, errors.New("protoBuffer is nil")
 	}
-	opcode := uint8(tc.protoBuffer[0:protoOpcodeBufferLen])
+	opcode := uint8(tc.protoBuffer[0:ProtoOpcodeBufferLen])
 	return opcode, nil
 }
 
@@ -59,7 +59,7 @@ func (tc *TcpConnection) ReadDestIp() (uint64, error)  {
 	if tc.protoBuffer == nil {
 		return nil, errors.New("protoBuffer is nil")
 	}
-	destIp := binary.BigEndian.Uint64(tc.protoBuffer[protoOpcodeBufferLen : protoOpcodeBufferLen+protoDestIpBufferLen])
+	destIp := binary.BigEndian.Uint64(tc.protoBuffer[ProtoOpcodeBufferLen : ProtoOpcodeBufferLen+ProtoDestIpBufferLen])
 	return destIp, nil
 }
 
@@ -67,8 +67,8 @@ func (tc *TcpConnection) ReadDestPort() (uint16, error) {
 	if tc.protoBuffer == nil {
 		return nil, errors.New("protoBuffer is nil")
 	}
-	start := protoOpcodeBufferLen + protoDestIpBufferLen
-	end := protoOpcodeBufferLen + protoDestIpBufferLen + protoDestPortBufferLen
+	start := ProtoOpcodeBufferLen + ProtoDestIpBufferLen
+	end := ProtoOpcodeBufferLen + ProtoDestIpBufferLen + ProtoDestPortBufferLen
 	destPort := binary.BigEndian.Uint64(tc.protoBuffer[start:end])
 	return destPort, nil
 }

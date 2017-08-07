@@ -3,10 +3,10 @@ package server
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net"
 	"tcp_tunnel/config"
 	"tcp_tunnel/logic"
-	"io/ioutil"
 )
 
 func TunnelListen() {
@@ -27,13 +27,13 @@ type Tunnel struct {
 	tcpConnection     *logic.TcpConnection
 	tipBuffer         *logic.TipBuffer
 	destTcpConnection *net.TCPConn
-	quitSignal        chan bool
+	quitSignal        chan struct{}
 }
 
 func NewTunnel(tcpConn *logic.TcpConnection) *Tunnel {
 	return &Tunnel{
 		tcpConnection: tcpConn,
-		quitSignal: make(chan bool, 1),
+		quitSignal:    make(chan struct{}, 1),
 	}
 }
 
@@ -46,22 +46,8 @@ func server(tunnel *Tunnel) {
 			goto failed
 		}
 	}
-	failed:
+failed:
 	return
-	//d_tcpAddr, _ := net.ResolveTCPAddr("tcp4", "")
-	//d_conn, err := net.DialTCP("tcp", nil, d_tcpAddr)
-	//if err != nil {
-	//	fmt.Println(err)
-	//	s_conn.Write([]byte("can't connect "))
-	//	s_conn.Close()
-	//
-	//}
-	//go io.Copy(s_conn, d_conn)
-	//go io.Copy(d_conn, s_conn)
-	//
-	//failed:
-	//tcpConn.Close()
-	//return
 }
 
 func (tunnel *Tunnel) execCmd() {
@@ -72,7 +58,7 @@ func (tunnel *Tunnel) execCmd() {
 		}
 		switch tipRequest.Opcode {
 		case logic.OpcodeBind:
-			tcpAddr, err := net.ResolveTCPAddr("tcp4", tipRequest.DestIp + ":" + tipRequest.DestPort)
+			tcpAddr, err := net.ResolveTCPAddr("tcp4", tipRequest.DestIp+":"+tipRequest.DestPort)
 			if err != nil {
 				tunnel.quitSignal <- true
 				return
@@ -85,7 +71,7 @@ func (tunnel *Tunnel) execCmd() {
 			bindAckStream := tipRequest.StreamTip(logic.OpcodeBindAck)
 			_, err := tunnel.tcpConnection.Write(bindAckStream)
 			if err != nil {
-				tunnel.quitSignal <- true
+				tunnel.quitSignal <- struct{}{}
 				return
 			}
 		case logic.OpcodeTransmit:
@@ -108,4 +94,3 @@ func (tunnel *Tunnel) serveRead() {
 		}
 	}
 }
-
