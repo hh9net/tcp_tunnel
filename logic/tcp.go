@@ -5,13 +5,12 @@ import (
 	"errors"
 	"io/ioutil"
 	"net"
-	"idgen/logic"
 )
 
 const (
-	TcpProtoBufferLen      = 11
-	ProtoOpcodeBufferLen   = 1
-	ProtoDestIpBufferLen   = 8
+	TcpProtoBufferLen = 9
+	ProtoOpcodeBufferLen = 1
+	ProtoDestIpBufferLen = 4
 	ProtoDestPortBufferLen = 2
 )
 
@@ -20,12 +19,12 @@ type TcpConnection struct {
 	protoBuffer []byte
 }
 
-func Accept(listener *net.Listener) (*TcpConnection, error) {
-	tc, err := listener.Accept()
+func Accept(tcpListner *net.TCPListener) (*TcpConnection, error) {
+	conn, err := tcpListner.AcceptTCP()
 	if err != nil {
-		nil, errors.New("listen error")
+		return nil, errors.New("listen error")
 	}
-	tcpConn := NewTcpContection(tc)
+	tcpConn := NewTcpContection(conn)
 	return tcpConn, nil
 }
 
@@ -49,27 +48,27 @@ func (tc *TcpConnection) ReadProtoBuffer() error {
 
 func (tc *TcpConnection) ReadOpcode() (uint8, error) {
 	if tc.protoBuffer == nil {
-		return nil, errors.New("protoBuffer is nil")
+		return uint8(0), errors.New("protoBuffer is nil")
 	}
-	opcode := uint8(tc.protoBuffer[0:ProtoOpcodeBufferLen])
+	opcode := uint8(tc.protoBuffer[ProtoOpcodeBufferLen])
 	return opcode, nil
 }
 
-func (tc *TcpConnection) ReadDestIp() (uint64, error)  {
+func (tc *TcpConnection) ReadDestIp() (uint32, error) {
 	if tc.protoBuffer == nil {
-		return nil, errors.New("protoBuffer is nil")
+		return uint32(0), errors.New("protoBuffer is nil")
 	}
-	destIp := binary.BigEndian.Uint64(tc.protoBuffer[ProtoOpcodeBufferLen : ProtoOpcodeBufferLen+ProtoDestIpBufferLen])
+	destIp := binary.BigEndian.Uint32(tc.protoBuffer[ProtoOpcodeBufferLen : ProtoOpcodeBufferLen + ProtoDestIpBufferLen])
 	return destIp, nil
 }
 
 func (tc *TcpConnection) ReadDestPort() (uint16, error) {
 	if tc.protoBuffer == nil {
-		return nil, errors.New("protoBuffer is nil")
+		return uint16(0), errors.New("protoBuffer is nil")
 	}
 	start := ProtoOpcodeBufferLen + ProtoDestIpBufferLen
 	end := ProtoOpcodeBufferLen + ProtoDestIpBufferLen + ProtoDestPortBufferLen
-	destPort := binary.BigEndian.Uint64(tc.protoBuffer[start:end])
+	destPort := binary.BigEndian.Uint16(tc.protoBuffer[start:end])
 	return destPort, nil
 }
 

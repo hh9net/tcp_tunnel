@@ -2,7 +2,6 @@ package server
 
 import (
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net"
 	"tcp_tunnel/config"
@@ -10,12 +9,13 @@ import (
 )
 
 func TunnelListen() {
-	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%s", config.ListenIp, config.ListenPort))
+	tcpAddr, err := net.ResolveTCPAddr("tcp4", fmt.Sprintf("%s:%s", config.ListenIp, config.ListenPort))
+	tcpListener, err := net.ListenTCP("tcp", tcpAddr)
 	if err != nil {
 		panic("listen ip is nil")
 	}
 	for {
-		tcpConntection, err := logic.Accept(listener)
+		tcpConntection, err := logic.Accept(tcpListener)
 		if err != nil {
 			continue
 		}
@@ -58,6 +58,7 @@ func (tunnel *Tunnel) execCmd() {
 		}
 		switch tipRequest.Opcode {
 		case logic.OpcodeBind:
+
 			tcpAddr, err := net.ResolveTCPAddr("tcp4", tipRequest.DestIp+":"+tipRequest.DestPort)
 			if err != nil {
 				tunnel.quitSignal <- true

@@ -3,7 +3,6 @@ package logic
 import (
 	"encoding/binary"
 	"errors"
-	"log"
 	"net"
 	"strconv"
 	"strings"
@@ -18,7 +17,7 @@ const (
 
 type TipBuffer struct {
 	Opcode   uint8
-	DestIp   uint64
+	DestIp   uint32
 	DestPort uint16
 	Data     []byte
 }
@@ -27,10 +26,17 @@ func NewTipBuffer() *TipBuffer {
 	return &TipBuffer{}
 }
 
+func (t *TipBuffer) DestIpToString() string {
+	ip := make(net.IP, 4)
+	binary.BigEndian.PutUint32(ip, t.DestIp)
+	return ip.String()
+}
+
 func (t *TipBuffer) ReadFrom(tcpConnection *TcpConnection) error {
 	if err := tcpConnection.ReadProtoBuffer(); err != nil {
 		return errors.New("read proto buffer error.")
 	}
+	var err error
 	t.Opcode, err = tcpConnection.ReadOpcode()
 	if err != nil {
 		return errors.New("read opcode error.")
@@ -64,15 +70,17 @@ func (t *TipBuffer) StreamTip(opcode int) []byte {
 	return []byte{}
 }
 
-func (t *TipBuffer) TransmitStream(ip, port string, data []byte) []byte {
+func (t *TipBuffer) TransmitStream(destIp, destPort string, data []byte) []byte {
 	t.Opcode = OpcodeTransmit
-	t.DestIp = ip
-	t.DestPort = port
+	ip := net.ParseIP(destIp)
+	port, _ := strconv.ParseUint(destPort, 10, 16)
+	t.DestIp = binary.BigEndian.Uint32(ip)
+	t.DestPort = uint16(port)
 	t.Data = data
 
 	buff := make([]byte, ProtoOpcodeBufferLen+ProtoDestIpBufferLen+ProtoDestPortBufferLen+len(data))
-	buff[0:ProtoOpcodeBufferLen] = t.Opcode
-	binary.BigEndian.PutUint64(buff[ProtoOpcodeBufferLen:ProtoOpcodeBufferLen+ProtoDestIpBufferLen], t.DestIp)
+	buff[ProtoOpcodeBufferLen] = t.Opcode
+	binary.BigEndian.PutUint32(buff[ProtoOpcodeBufferLen:ProtoOpcodeBufferLen+ProtoDestIpBufferLen], t.DestIp)
 	binary.BigEndian.PutUint16(buff[ProtoOpcodeBufferLen+ProtoDestIpBufferLen:TcpProtoBufferLen], t.DestPort)
 	copy(buff[TcpProtoBufferLen:], data)
 	return buff
