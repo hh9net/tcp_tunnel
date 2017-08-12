@@ -1,6 +1,6 @@
 package config
 
 const (
-	ListenIp   = "0.0.0.0"
-	ListenPort = "8787"
+	ServerIp   = "0.0.0.0"
+	ServerPort = "8787"
 )

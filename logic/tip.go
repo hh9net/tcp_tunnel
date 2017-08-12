@@ -32,6 +32,11 @@ func (t *TipBuffer) DestIpToString() string {
 	return ip.String()
 }
 
+func (t *TipBuffer) DestPortToString() string {
+	port := strconv.Itoa(int(t.DestPort))
+	return port
+}
+
 func (t *TipBuffer) ReadFrom(tcpConnection *TcpConnection) error {
 	if err := tcpConnection.ReadProtoBuffer(); err != nil {
 		return errors.New("read proto buffer error.")
@@ -68,6 +73,20 @@ func (t *TipBuffer) StreamTip(opcode int) []byte {
 		return buffer
 	}
 	return []byte{}
+}
+
+func (t *TipBuffer) BindStream(destIp, destPort string) []byte {
+	t.Opcode = OpcodeBind
+	ip := net.ParseIP(destIp)
+	port, _ := strconv.ParseUint(destPort, 10, 16)
+	t.DestIp = binary.BigEndian.Uint32(ip)
+	t.DestPort = uint16(port)
+
+	buff := make([]byte, ProtoOpcodeBufferLen+ProtoDestIpBufferLen+ProtoDestPortBufferLen)
+	buff[ProtoOpcodeBufferLen] = t.Opcode
+	binary.BigEndian.PutUint32(buff[ProtoOpcodeBufferLen:ProtoOpcodeBufferLen+ProtoDestIpBufferLen], t.DestIp)
+	binary.BigEndian.PutUint16(buff[ProtoOpcodeBufferLen+ProtoDestIpBufferLen:TcpProtoBufferLen], t.DestPort)
+	return buff
 }
 
 func (t *TipBuffer) TransmitStream(destIp, destPort string, data []byte) []byte {

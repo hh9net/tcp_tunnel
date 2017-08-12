@@ -5,12 +5,13 @@ import (
 	"errors"
 	"io/ioutil"
 	"net"
+	"io"
 )
 
 const (
-	TcpProtoBufferLen = 9
-	ProtoOpcodeBufferLen = 1
-	ProtoDestIpBufferLen = 4
+	TcpProtoBufferLen      = 7
+	ProtoOpcodeBufferLen   = 1
+	ProtoDestIpBufferLen   = 4
 	ProtoDestPortBufferLen = 2
 )
 
@@ -36,6 +37,9 @@ func (tc *TcpConnection) ReadProtoBuffer() error {
 	left := TcpProtoBufferLen
 	for left > 0 {
 		n, err := tc.TCPConn.Read(tc.protoBuffer)
+		if err == io.EOF {
+			return nil
+		}
 		if err != nil {
 			return err
 		}
@@ -58,7 +62,7 @@ func (tc *TcpConnection) ReadDestIp() (uint32, error) {
 	if tc.protoBuffer == nil {
 		return uint32(0), errors.New("protoBuffer is nil")
 	}
-	destIp := binary.BigEndian.Uint32(tc.protoBuffer[ProtoOpcodeBufferLen : ProtoOpcodeBufferLen + ProtoDestIpBufferLen])
+	destIp := binary.BigEndian.Uint32(tc.protoBuffer[ProtoOpcodeBufferLen : ProtoOpcodeBufferLen+ProtoDestIpBufferLen])
 	return destIp, nil
 }
 

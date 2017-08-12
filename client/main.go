@@ -8,27 +8,34 @@ import (
 	"net"
 	"runtime"
 	"tcp_tunnel/logic"
+	"tcp_tunnel/config"
 )
 
 var (
-	localIp    = flag.String("i", "127.0.0.1", "local ip addr")
-	localPort  = flag.String("p", "8888", "local port")
-	remoteIp   = flag.String("ri", "127.0.0.1", "remote ip addr")
-	remotePort = flag.String("rp", "8787", "remote port")
+	localIp, localPort, remoteIp, remotePort string
 )
 
 func init() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
+	flag.StringVar(&localIp, "i", "127.0.0.1", "local ip address")
+	flag.StringVar(&localPort, "p", "8888", "local port address")
+	flag.StringVar(&remoteIp, "ri", "127.0.0.1", "remote ip address")
+	flag.StringVar(&remotePort, "rp", "6379", "remote port address")
+	flag.Parse()
 }
 
 func main() {
-	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%s", localIp, localPort))
+	tcpAddr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("%s:%s", localIp, localPort))
+	if err != nil {
+		panic("resolvetcpaddr failed.")
+	}
+	listener, err := net.ListenTCP("tcp", tcpAddr)
 	if err != nil {
 		panic("listen ip is nil")
 	}
 	defer listener.Close()
 	for {
-		conn, err := listener.Accept()
+		conn, err := listener.AcceptTCP()
 		if err != nil {
 			panic("accept error.")
 		}
@@ -36,28 +43,65 @@ func main() {
 	}
 }
 
-func transmit(tcpConn *net.Conn) {
+func transmit(localConn *net.TCPConn) {
+	serverTcpAddr, err := net.ResolveTCPAddr("tcp4", config.ServerIp+":"+config.ServerPort)
+	if err != nil {
+		panic("resolve remote tcp addr failed.")
+		return
+	}
+	serverTcpConn, err := net.DialTCP("tcp", nil, serverTcpAddr)
+	if err != nil {
+		panic("dial remote tcp failed.")
+		return
+	}
+	serverConn := logic.NewTcpContection(serverTcpConn)
+	tip := logic.NewTipBuffer()
+	bindStream := tip.BindStream(remoteIp, remotePort)
+	_, err = serverConn.Write(bindStream)
+	if err != nil {
+		fmt.Print(err.Error())
+	}
+	go writeToServer(localConn, serverConn)
+	go readServer(localConn, serverConn)
+}
+
+func writeToServer(localConn *net.TCPConn, serverConn *logic.TcpConnection) {
 	for {
-		data, err := ioutil.ReadAll(tcpConn)
+		data, err := ioutil.ReadAll(localConn)
 		if err != nil {
 			errors.New("read data error.")
 		}
 		tip := logic.NewTipBuffer()
-		transmitBuff := tip.TransmitStream(remoteIp, remotePort, data)
-
-		remoteTcpAddr, err := net.ResolveTCPAddr("tcp4", remoteIp+":"+remotePort)
-		if err != nil {
-			panic("resolve remote tcp addr failed.")
-			return
-		}
-		remoteConn, err := net.DialTCP("tcp", nil, remoteTcpAddr)
-		if err != nil {
-			panic("dial remote tcp failed.")
-			return
-		}
-		_, err = remoteConn.Write(transmitBuff)
+		transmitStream := tip.TransmitStream(remoteIp, remotePort, data)
+		_, err = serverConn.Write(transmitStream)
 		if err != nil {
 			fmt.Print(err.Error())
+		}
+	}
+}
+
+func readServer(localConn *net.TCPConn, serverConn *logic.TcpConnection) {
+	for {
+		if err := serverConn.ReadProtoBuffer(); err != nil {
+			fmt.Println("ReadProtoBuffer", err.Error())
+			continue;
+		}
+		opcode, err := serverConn.ReadOpcode()
+		if err != nil {
+			fmt.Println("ReadOpcode", err.Error())
+			continue;
+		}
+		if opcode == logic.OpcodeBindAck {
+			continue;
+		}
+		data, err := serverConn.ReadData()
+		if err != nil {
+			fmt.Println("ReadData", err.Error())
+			continue;
+		}
+		_, err = localConn.Write(data)
+		if err != nil {
+			fmt.Println("write", err.Error())
 		}
 	}
 }
