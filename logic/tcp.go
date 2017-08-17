@@ -3,12 +3,12 @@ package logic
 import (
 	"encoding/binary"
 	"errors"
-	"io/ioutil"
-	"net"
 	"io"
+	"net"
 )
 
 const (
+	ReadBuffLen            = 0xFFFFFF
 	TcpProtoBufferLen      = 7
 	ProtoOpcodeBufferLen   = 1
 	ProtoDestIpBufferLen   = 4
@@ -77,11 +77,12 @@ func (tc *TcpConnection) ReadDestPort() (uint16, error) {
 }
 
 func (tc *TcpConnection) ReadData() ([]byte, error) {
-	data, err := ioutil.ReadAll(tc.TCPConn)
+	buff := make([]byte, ReadBuffLen)
+	_, err := tc.TCPConn.Read(buff)
 	if err != nil {
 		return nil, err
 	}
-	return data, nil
+	return buff, nil
 }
 
 func (tc *TcpConnection) RemoteIP() string {

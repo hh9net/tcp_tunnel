@@ -2,7 +2,6 @@ package server
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net"
 	"tcp_tunnel/config"
 	"tcp_tunnel/logic"
@@ -33,7 +32,7 @@ type Tunnel struct {
 
 func NewTunnel(tcpConn *logic.TcpConnection) *Tunnel {
 	return &Tunnel{
-		bound:   false,
+		bound:         false,
 		tcpConnection: tcpConn,
 		quitSignal:    make(chan struct{}, 1),
 	}
@@ -47,19 +46,24 @@ func server(tunnel *Tunnel) {
 			goto failed
 		}
 	}
-	failed:
+failed:
 	return
 }
 
 func (tunnel *Tunnel) execCmd() {
+Exec:
 	for {
 		tipRequest := logic.NewTipBuffer()
 		if err := tipRequest.ReadFrom(tunnel.tcpConnection); err != nil {
 			continue
 		}
+		fmt.Printf("readform: %#v", tipRequest)
 		switch tipRequest.Opcode {
 		case logic.OpcodeBind:
-			tcpAddr, err := net.ResolveTCPAddr("tcp4", tipRequest.DestIpToString() + ":" + tipRequest.DestPortToString())
+			if tunnel.bound == true {
+				continue Exec
+			}
+			tcpAddr, err := net.ResolveTCPAddr("tcp4", tipRequest.DestIpToString()+":"+tipRequest.DestPortToString())
 			if err != nil {
 				tunnel.quitSignal <- struct{}{}
 				return
@@ -84,16 +88,14 @@ func (tunnel *Tunnel) execCmd() {
 }
 
 func (tunnel *Tunnel) serveRead() {
-	if (tunnel.bound == true) {
-		return
-	}
 	for {
-		data, err := ioutil.ReadAll(tunnel.destTcpConnection)
+		buff := make([]byte, logic.ReadBuffLen)
+		_, err := tunnel.destTcpConnection.Read(buff)
 		if err != nil {
 			tunnel.quitSignal <- struct{}{}
 			return
 		}
-		_, err = tunnel.tcpConnection.Write(data)
+		_, err = tunnel.tcpConnection.Write(buff)
 		if err != nil {
 			tunnel.quitSignal <- struct{}{}
 			return
