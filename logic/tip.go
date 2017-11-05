@@ -47,7 +47,7 @@ func (t *TipBuffer) ReadFrom(tcpConnection *TcpConnection) error {
 		return errors.New("read opcode error.")
 	}
 	switch t.Opcode {
-	case OpcodeBind:
+	case OpcodeTransmit:
 		t.DestIp, err = tcpConnection.ReadDestIp()
 		if err != nil {
 			return errors.New("read destIP error.")
@@ -56,7 +56,6 @@ func (t *TipBuffer) ReadFrom(tcpConnection *TcpConnection) error {
 		if err != nil {
 			return errors.New("read destPort error.")
 		}
-	case OpcodeTransmit:
 		t.Data, err = tcpConnection.ReadData()
 		if err != nil {
 			return errors.New("read data error.")

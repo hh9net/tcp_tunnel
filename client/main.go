@@ -25,15 +25,10 @@ func init() {
 }
 
 func main() {
-	tcpAddr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("%s:%s", localIp, localPort))
-	if err != nil {
-		panic("resolvetcpaddr failed.")
-	}
-	listener, err := net.ListenTCP("tcp", tcpAddr)
+	listener, err := logic.NewTcpListener(localIp, localPort)
 	if err != nil {
 		panic("listen ip is nil")
 	}
-	defer listener.Close()
 	for {
 		conn, err := listener.AcceptTCP()
 		if err != nil {
@@ -106,7 +101,7 @@ func readServer(localConn *net.TCPConn, serverConn *logic.TcpConnection) {
 		data, err := serverConn.ReadData()
 		if err != nil {
 			fmt.Println("ReadData", err.Error())
-			quitSignal <- struct {}{}
+			quitSignal <- struct{}{}
 			return
 		}
 		_, err = localConn.Write(data)

@@ -89,3 +89,16 @@ func (tc *TcpConnection) RemoteIP() string {
 	tcpAddr := tc.RemoteAddr().(*net.TCPAddr)
 	return tcpAddr.IP.String()
 }
+
+func NewTcpListener(ip, port string) (*net.TCPListener, error) {
+	tcpAddr, err := net.ResolveTCPAddr("tcp4", fmt.Sprintf("%s:%s", ip, port))
+	if err != nil {
+		return nil, err
+	}
+	tcpListener, err := net.ListenTCP("tcp", tcpAddr)
+	if err != nil {
+		return nil, err
+	}
+	return tcpListener, nil
+}
+S
