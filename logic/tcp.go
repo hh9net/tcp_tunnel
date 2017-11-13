@@ -3,6 +3,7 @@ package logic
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 )
@@ -101,4 +102,17 @@ func NewTcpListener(ip, port string) (*net.TCPListener, error) {
 	}
 	return tcpListener, nil
 }
-S
+
+func NewTcpConn(ip, port string) (*net.TCPConn, error) {
+	tcpAddr, err := net.ResolveTCPAddr("tcp4", fmt.Sprintf("%s:%s", ip, port))
+	if err != nil {
+		panic("resolve remote tcp addr failed.")
+		return
+	}
+	tcpConn, err := net.DialTCP("tcp", nil, tcpAddr)
+	if err != nil {
+		panic("dial remote tcp failed.")
+		return
+	}
+	return tcpConn, nil
+}

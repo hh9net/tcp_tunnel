@@ -60,13 +60,9 @@ func (tunnel *Tunnel) execCmd() {
 		switch tipRequest.Opcode {
 		case logic.OpcodeTransmit:
 			if tunnel.connectedDest == false {
-				tcpAddr, err := net.ResolveTCPAddr("tcp4", tipRequest.DestIpToString()+":"+tipRequest.DestPortToString())
+				tunnel.destTcpConnection, err = logic.NewTcpConn(tipRequest.DestIpToString(), tipRequest.DestPortToString())
 				if err != nil {
-					tunnel.quitSignal <- struct{}{}
-					return
-				}
-				tunnel.destTcpConnection, err = net.DialTCP("tcp", nil, tcpAddr)
-				if err != nil {
+					fmt.Println("destTcpConnection error ", err)
 					tunnel.quitSignal <- struct{}{}
 					return
 				}

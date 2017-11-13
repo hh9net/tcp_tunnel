@@ -11,14 +11,16 @@ import (
 )
 
 var (
-	localIp, localPort, remoteIp, remotePort string
-	quitSignal                               = make(chan struct{}, 1)
+	localIp, localPort, serverIP, serverPort, remoteIp, remotePort string
+	quitSignal                                                     = make(chan struct{}, 1)
 )
 
 func init() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	flag.StringVar(&localIp, "i", "127.0.0.1", "local ip address")
 	flag.StringVar(&localPort, "p", "8888", "local port address")
+	flag.StringVar(&serverIP, "i", "127.0.0.1", "server ip address")
+	flag.StringVar(&serverPort, "p", "8787", "server port address")
 	flag.StringVar(&remoteIp, "ri", "127.0.0.1", "remote ip address")
 	flag.StringVar(&remotePort, "rp", "6379", "remote port address")
 	flag.Parse()
@@ -39,23 +41,12 @@ func main() {
 }
 
 func transmit(localConn *net.TCPConn) {
-	serverTcpAddr, err := net.ResolveTCPAddr("tcp4", config.ServerIp+":"+config.ServerPort)
+	serverTcpConn, err := logic.NewTcpConn(serverIP, serverPort)
 	if err != nil {
-		panic("resolve remote tcp addr failed.")
-		return
-	}
-	serverTcpConn, err := net.DialTCP("tcp", nil, serverTcpAddr)
-	if err != nil {
-		panic("dial remote tcp failed.")
+		panic("connect server failed.")
 		return
 	}
 	serverConn := logic.NewTcpContection(serverTcpConn)
-	tip := logic.NewTipBuffer()
-	bindStream := tip.BindStream(remoteIp, remotePort)
-	_, err = serverConn.Write(bindStream)
-	if err != nil {
-		fmt.Print(err.Error())
-	}
 	go writeToServer(localConn, serverConn)
 	go readServer(localConn, serverConn)
 }
