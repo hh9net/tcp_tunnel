@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"net"
 	"runtime"
 	"tcp_tunnel/config"
@@ -55,8 +56,12 @@ func writeToServer(localConn *net.TCPConn, serverConn *logic.TcpConnection) {
 	for {
 		buff := make([]byte, logic.ReadBuffLen)
 		_, err := localConn.Read(buff)
+		if err == io.EOF {
+			continue
+		}
 		if err != nil {
-			errors.New("read data error.")
+			fmt.Println("localConn read error", err.Error())
+			continue
 		}
 		if len(buff) <= 0 {
 			continue
@@ -65,7 +70,7 @@ func writeToServer(localConn *net.TCPConn, serverConn *logic.TcpConnection) {
 		transmitStream := tip.TransmitStream(remoteIp, remotePort, buff)
 		_, err = serverConn.Write(transmitStream)
 		if err != nil {
-			fmt.Print(err.Error())
+			fmt.Print("serverConn write error", err.Error())
 		}
 		fmt.Printf("writeToServer: %#v", transmitStream)
 		select {
@@ -81,15 +86,16 @@ func readServer(localConn *net.TCPConn, serverConn *logic.TcpConnection) {
 			fmt.Println("ReadProtoBuffer", err.Error())
 			continue
 		}
-		opcode, err := serverConn.ReadOpcode()
+		dataLen, err := serverConn.ReadDataLen()
 		if err != nil {
 			fmt.Println("ReadOpcode", err.Error())
 			continue
 		}
-		if opcode == logic.OpcodeBindAck {
+		buffLen := int(dataLen)
+		data, err := serverConn.ReadData(buffLen)
+		if err == io.EOF {
 			continue
 		}
-		data, err := serverConn.ReadData()
 		if err != nil {
 			fmt.Println("ReadData", err.Error())
 			quitSignal <- struct{}{}

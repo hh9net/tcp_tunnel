@@ -10,10 +10,11 @@ import (
 
 const (
 	ReadBuffLen            = 0xFFFFFF
-	TcpProtoBufferLen      = 7
+	TcpProtoBufferLen      = 11
 	ProtoOpcodeBufferLen   = 1
 	ProtoDestIpBufferLen   = 4
 	ProtoDestPortBufferLen = 2
+	ProtoDataLen           = 4
 )
 
 type TcpConnection struct {
@@ -77,8 +78,18 @@ func (tc *TcpConnection) ReadDestPort() (uint16, error) {
 	return destPort, nil
 }
 
-func (tc *TcpConnection) ReadData() ([]byte, error) {
-	buff := make([]byte, ReadBuffLen)
+func (tc *TcpConnection) ReadDataLen() (uint32, error) {
+	if tc.protoBuffer == nil {
+		return int(0), errors.New("protoBuffer is nil")
+	}
+	start := ProtoOpcodeBufferLen + ProtoDestIpBufferLen + ProtoDestPortBufferLen
+	end := ProtoOpcodeBufferLen + ProtoDestIpBufferLen + ProtoDestPortBufferLen + ProtoDataLen
+	dataLen := binary.BigEndian.Uint32(tc.protoBuffer[start:end])
+	return dataLen, nil
+}
+
+func (tc *TcpConnection) ReadData(buffLen int) ([]byte, error) {
+	buff := make([]byte, bufflen)
 	_, err := tc.TCPConn.Read(buff)
 	if err != nil {
 		return nil, err

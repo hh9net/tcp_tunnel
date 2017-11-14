@@ -19,6 +19,7 @@ type TipBuffer struct {
 	Opcode   uint8
 	DestIp   uint32
 	DestPort uint16
+	DataLen  uint32
 	Data     []byte
 }
 
@@ -56,7 +57,12 @@ func (t *TipBuffer) ReadFrom(tcpConnection *TcpConnection) error {
 		if err != nil {
 			return errors.New("read destPort error.")
 		}
-		t.Data, err = tcpConnection.ReadData()
+		t.DataLen, err = tcpConnection.ReadDataLen()
+		if err != nil {
+			return errors.New("read data len error.")
+		}
+		buffLen := int(t.DataLen)
+		t.Data, err = tcpConnection.ReadData(buffLen)
 		if err != nil {
 			return errors.New("read data error.")
 		}
@@ -94,12 +100,13 @@ func (t *TipBuffer) TransmitStream(destIp, destPort string, data []byte) []byte 
 	port, _ := strconv.ParseUint(destPort, 10, 16)
 	t.DestIp = binary.BigEndian.Uint32(ip)
 	t.DestPort = uint16(port)
-	t.Data = data
+	t.DataLen = uint32(len(data))
 
-	buff := make([]byte, ProtoOpcodeBufferLen+ProtoDestIpBufferLen+ProtoDestPortBufferLen+len(data))
+	buff := make([]byte, TcpProtoBufferLen+len(data))
 	buff[ProtoOpcodeBufferLen] = t.Opcode
 	binary.BigEndian.PutUint32(buff[ProtoOpcodeBufferLen:ProtoOpcodeBufferLen+ProtoDestIpBufferLen], t.DestIp)
-	binary.BigEndian.PutUint16(buff[ProtoOpcodeBufferLen+ProtoDestIpBufferLen:TcpProtoBufferLen], t.DestPort)
+	binary.BigEndian.PutUint16(buff[ProtoOpcodeBufferLen+ProtoDestIpBufferLen:ProtoOpcodeBufferLen+ProtoDestIpBufferLen+ProtoDestPortBufferLen], t.DestPort)
+	binary.BigEndian.PutUint16(buff[ProtoOpcodeBufferLen+ProtoDestIpBufferLen+ProtoDestPortBufferLen:TcpProtoBufferLen], t.DataLen)
 	copy(buff[TcpProtoBufferLen:], data)
 	return buff
 }
