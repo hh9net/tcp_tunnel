@@ -80,7 +80,7 @@ func (tc *TcpConnection) ReadDestPort() (uint16, error) {
 
 func (tc *TcpConnection) ReadDataLen() (uint32, error) {
 	if tc.protoBuffer == nil {
-		return int(0), errors.New("protoBuffer is nil")
+		return uint32(0), errors.New("protoBuffer is nil")
 	}
 	start := ProtoOpcodeBufferLen + ProtoDestIpBufferLen + ProtoDestPortBufferLen
 	end := ProtoOpcodeBufferLen + ProtoDestIpBufferLen + ProtoDestPortBufferLen + ProtoDataLen
@@ -89,7 +89,7 @@ func (tc *TcpConnection) ReadDataLen() (uint32, error) {
 }
 
 func (tc *TcpConnection) ReadData(buffLen int) ([]byte, error) {
-	buff := make([]byte, bufflen)
+	buff := make([]byte, buffLen)
 	_, err := tc.TCPConn.Read(buff)
 	if err != nil {
 		return nil, err
@@ -118,12 +118,12 @@ func NewTcpConn(ip, port string) (*net.TCPConn, error) {
 	tcpAddr, err := net.ResolveTCPAddr("tcp4", fmt.Sprintf("%s:%s", ip, port))
 	if err != nil {
 		panic("resolve remote tcp addr failed.")
-		return
+		return nil, errors.New("resolve failed.")
 	}
 	tcpConn, err := net.DialTCP("tcp", nil, tcpAddr)
 	if err != nil {
 		panic("dial remote tcp failed.")
-		return
+		return nil, errors.New("dial failed.")
 	}
 	return tcpConn, nil
 }

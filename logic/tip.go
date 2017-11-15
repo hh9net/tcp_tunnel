@@ -106,7 +106,7 @@ func (t *TipBuffer) TransmitStream(destIp, destPort string, data []byte) []byte 
 	buff[ProtoOpcodeBufferLen] = t.Opcode
 	binary.BigEndian.PutUint32(buff[ProtoOpcodeBufferLen:ProtoOpcodeBufferLen+ProtoDestIpBufferLen], t.DestIp)
 	binary.BigEndian.PutUint16(buff[ProtoOpcodeBufferLen+ProtoDestIpBufferLen:ProtoOpcodeBufferLen+ProtoDestIpBufferLen+ProtoDestPortBufferLen], t.DestPort)
-	binary.BigEndian.PutUint16(buff[ProtoOpcodeBufferLen+ProtoDestIpBufferLen+ProtoDestPortBufferLen:TcpProtoBufferLen], t.DataLen)
+	binary.BigEndian.PutUint32(buff[ProtoOpcodeBufferLen+ProtoDestIpBufferLen+ProtoDestPortBufferLen:TcpProtoBufferLen], t.DataLen)
 	copy(buff[TcpProtoBufferLen:], data)
 	return buff
 }
