@@ -56,10 +56,11 @@ func (tunnel *Tunnel) execCmd() {
 		if err := tipRequest.ReadFrom(tunnel.tcpConnection); err != nil {
 			continue
 		}
-		fmt.Printf("readform: %#v", tipRequest)
+		fmt.Println("execCmd", tipRequest.DestIpToString(), tipRequest.DestPortToString(), tipRequest.Data)
 		switch tipRequest.Opcode {
 		case logic.OpcodeTransmit:
 			if tunnel.connectedDest == false {
+				var err error
 				tunnel.destTcpConnection, err = logic.NewTcpConn(tipRequest.DestIpToString(), tipRequest.DestPortToString())
 				if err != nil {
 					fmt.Println("destTcpConnection error ", err)
@@ -67,7 +68,7 @@ func (tunnel *Tunnel) execCmd() {
 					return
 				}
 				tunnel.connectedDest = true
-				tunnel.serveRead()
+				go tunnel.serveRead()
 			}
 			tunnel.destTcpConnection.Write(tipRequest.Data)
 		}
@@ -85,6 +86,7 @@ func (tunnel *Tunnel) serveRead() {
 			tunnel.quitSignal <- struct{}{}
 			return
 		}
+		fmt.Println("serveRead", buff)
 		_, err = tunnel.tcpConnection.Write(buff)
 		if err != nil {
 			tunnel.quitSignal <- struct{}{}

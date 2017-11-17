@@ -19,7 +19,7 @@ func init() {
 }
 
 func main() {
-	conf = config.NewConfig(ServerIp, ServerPort)
+	conf := config.NewConfig(ServerIp, ServerPort)
 	go server.TunnelListen(conf)
 	select {}
 }

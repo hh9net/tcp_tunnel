@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	ReadBuffLen            = 0xFFFFFF
+	ReadBuffLen            = 0xFF
 	TcpProtoBufferLen      = 11
 	ProtoOpcodeBufferLen   = 1
 	ProtoDestIpBufferLen   = 4
@@ -39,6 +39,7 @@ func (tc *TcpConnection) ReadProtoBuffer() error {
 	left := TcpProtoBufferLen
 	for left > 0 {
 		n, err := tc.TCPConn.Read(tc.protoBuffer)
+		fmt.Println("ReadProtoBuffer", n, err, left, len(tc.protoBuffer), tc.protoBuffer)
 		if err == io.EOF {
 			return nil
 		}
@@ -56,7 +57,7 @@ func (tc *TcpConnection) ReadOpcode() (uint8, error) {
 	if tc.protoBuffer == nil {
 		return uint8(0), errors.New("protoBuffer is nil")
 	}
-	opcode := uint8(tc.protoBuffer[ProtoOpcodeBufferLen])
+	opcode := uint8(tc.protoBuffer[0])
 	return opcode, nil
 }
 

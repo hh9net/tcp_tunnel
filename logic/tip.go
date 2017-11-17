@@ -6,6 +6,7 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"fmt"
 )
 
 const (
@@ -44,20 +45,24 @@ func (t *TipBuffer) ReadFrom(tcpConnection *TcpConnection) error {
 	}
 	var err error
 	t.Opcode, err = tcpConnection.ReadOpcode()
+	fmt.Println("t.Opcode", t.Opcode, OpcodeTransmit)
 	if err != nil {
 		return errors.New("read opcode error.")
 	}
 	switch t.Opcode {
 	case OpcodeTransmit:
 		t.DestIp, err = tcpConnection.ReadDestIp()
+		fmt.Println("t.DestIp", t.DestIp)
 		if err != nil {
 			return errors.New("read destIP error.")
 		}
 		t.DestPort, err = tcpConnection.ReadDestPort()
+		fmt.Println("t.DestPort", t.DestPort)
 		if err != nil {
 			return errors.New("read destPort error.")
 		}
 		t.DataLen, err = tcpConnection.ReadDataLen()
+		fmt.Println("t.DataLen", t.DataLen)
 		if err != nil {
 			return errors.New("read data len error.")
 		}
@@ -96,18 +101,24 @@ func (t *TipBuffer) BindStream(destIp, destPort string) []byte {
 
 func (t *TipBuffer) TransmitStream(destIp, destPort string, data []byte) []byte {
 	t.Opcode = OpcodeTransmit
-	ip := net.ParseIP(destIp)
+	ip := []byte(net.ParseIP(destIp).To4())
 	port, _ := strconv.ParseUint(destPort, 10, 16)
 	t.DestIp = binary.BigEndian.Uint32(ip)
 	t.DestPort = uint16(port)
 	t.DataLen = uint32(len(data))
+	fmt.Println("TransmitStream*******", destIp, ip, t.DestIp)
 
 	buff := make([]byte, TcpProtoBufferLen+len(data))
-	buff[ProtoOpcodeBufferLen] = t.Opcode
+	buff[ProtoOpcodeBufferLen-1] = t.Opcode
+	fmt.Println("TransmitStream-----", t.Opcode, buff)
 	binary.BigEndian.PutUint32(buff[ProtoOpcodeBufferLen:ProtoOpcodeBufferLen+ProtoDestIpBufferLen], t.DestIp)
+	fmt.Println("TransmitStream+++++", t.DestIp, buff)
 	binary.BigEndian.PutUint16(buff[ProtoOpcodeBufferLen+ProtoDestIpBufferLen:ProtoOpcodeBufferLen+ProtoDestIpBufferLen+ProtoDestPortBufferLen], t.DestPort)
+	fmt.Println("TransmitStream-----", t.DestPort, buff)
 	binary.BigEndian.PutUint32(buff[ProtoOpcodeBufferLen+ProtoDestIpBufferLen+ProtoDestPortBufferLen:TcpProtoBufferLen], t.DataLen)
+	fmt.Println("TransmitStream+++++", t.DataLen, buff)
 	copy(buff[TcpProtoBufferLen:], data)
+	fmt.Println("TransmitStream=====", data, buff)
 	return buff
 }
 

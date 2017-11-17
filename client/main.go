@@ -1,13 +1,11 @@
 package main
 
 import (
-	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"net"
 	"runtime"
-	"tcp_tunnel/config"
 	"tcp_tunnel/logic"
 )
 
@@ -20,8 +18,8 @@ func init() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	flag.StringVar(&localIp, "i", "127.0.0.1", "local ip address")
 	flag.StringVar(&localPort, "p", "8888", "local port address")
-	flag.StringVar(&serverIP, "i", "127.0.0.1", "server ip address")
-	flag.StringVar(&serverPort, "p", "8787", "server port address")
+	flag.StringVar(&serverIP, "si", "127.0.0.1", "server ip address")
+	flag.StringVar(&serverPort, "sp", "8787", "server port address")
 	flag.StringVar(&remoteIp, "ri", "127.0.0.1", "remote ip address")
 	flag.StringVar(&remotePort, "rp", "6379", "remote port address")
 	flag.Parse()
@@ -71,8 +69,10 @@ func writeToServer(localConn *net.TCPConn, serverConn *logic.TcpConnection) {
 		_, err = serverConn.Write(transmitStream)
 		if err != nil {
 			fmt.Print("serverConn write error", err.Error())
+			quitSignal <- struct{}{}
 		}
-		fmt.Printf("writeToServer: %#v", transmitStream)
+		fmt.Print("write data", string(buff), transmitStream, remoteIp, tip.Opcode, tip.DestIp, tip.DestPort, tip.DataLen, tip.Data)
+		fmt.Printf("writeToServer: %#v", tip)
 		select {
 		case <-quitSignal:
 			return
@@ -106,5 +106,9 @@ func readServer(localConn *net.TCPConn, serverConn *logic.TcpConnection) {
 			fmt.Println("write", err.Error())
 		}
 		fmt.Printf("readServer: %#v", data)
+		select {
+		case <-quitSignal:
+			return
+		}
 	}
 }
