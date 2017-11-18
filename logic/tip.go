@@ -3,10 +3,10 @@ package logic
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"net"
 	"strconv"
 	"strings"
-	"fmt"
 )
 
 const (
@@ -107,6 +107,25 @@ func (t *TipBuffer) TransmitStream(destIp, destPort string, data []byte) []byte 
 	t.DestPort = uint16(port)
 	t.DataLen = uint32(len(data))
 	fmt.Println("TransmitStream*******", destIp, ip, t.DestIp)
+
+	buff := make([]byte, TcpProtoBufferLen+len(data))
+	buff[ProtoOpcodeBufferLen-1] = t.Opcode
+	fmt.Println("TransmitStream-----", t.Opcode, buff)
+	binary.BigEndian.PutUint32(buff[ProtoOpcodeBufferLen:ProtoOpcodeBufferLen+ProtoDestIpBufferLen], t.DestIp)
+	fmt.Println("TransmitStream+++++", t.DestIp, buff)
+	binary.BigEndian.PutUint16(buff[ProtoOpcodeBufferLen+ProtoDestIpBufferLen:ProtoOpcodeBufferLen+ProtoDestIpBufferLen+ProtoDestPortBufferLen], t.DestPort)
+	fmt.Println("TransmitStream-----", t.DestPort, buff)
+	binary.BigEndian.PutUint32(buff[ProtoOpcodeBufferLen+ProtoDestIpBufferLen+ProtoDestPortBufferLen:TcpProtoBufferLen], t.DataLen)
+	fmt.Println("TransmitStream+++++", t.DataLen, buff)
+	copy(buff[TcpProtoBufferLen:], data)
+	fmt.Println("TransmitStream=====", data, buff)
+	return buff
+}
+
+func (t *TipBuffer) DataToTransmitStream(data []byte) []byte {
+	t.Opcode = OpcodeTransmit
+	t.DataLen = uint32(len(data))
+	fmt.Println("TransmitStream*******", t.DestIp, t.DestPort)
 
 	buff := make([]byte, TcpProtoBufferLen+len(data))
 	buff[ProtoOpcodeBufferLen-1] = t.Opcode

@@ -86,8 +86,11 @@ func (tunnel *Tunnel) serveRead() {
 			tunnel.quitSignal <- struct{}{}
 			return
 		}
-		fmt.Println("serveRead", buff)
-		_, err = tunnel.tcpConnection.Write(buff)
+		fmt.Println("serveRead", string(buff))
+
+		tip := logic.NewTipBuffer()
+		transmitStream := tip.DataToTransmitStream(buff)
+		_, err = tunnel.tcpConnection.Write(transmitStream)
 		if err != nil {
 			tunnel.quitSignal <- struct{}{}
 			return
