@@ -52,11 +52,7 @@ func transmit(localConn *net.TCPConn) {
 
 func writeToServer(localConn *net.TCPConn, serverConn *logic.TcpConnection) {
 	for {
-		buff := make([]byte, logic.ReadBuffLen)
-		_, err := localConn.Read(buff)
-		if err == io.EOF {
-			continue
-		}
+		buff, err := logic.ChunkRead(localConn)
 		if err != nil {
 			fmt.Println("localConn read error", err.Error())
 			continue
@@ -64,6 +60,7 @@ func writeToServer(localConn *net.TCPConn, serverConn *logic.TcpConnection) {
 		if len(buff) <= 0 {
 			continue
 		}
+		fmt.Println("xxxxxxxxxxx", string(buff))
 		tip := logic.NewTipBuffer()
 		transmitStream := tip.TransmitStream(remoteIp, remotePort, buff)
 		_, err = serverConn.Write(transmitStream)
@@ -80,8 +77,10 @@ func writeToServer(localConn *net.TCPConn, serverConn *logic.TcpConnection) {
 	}
 }
 
+// todo 怀疑在读取redis-cli没有完全读完，写到redis-server端时，而且还要查下，在读取时的make buff，不要初始化为0，不然读取数据写入到buff里有问题，
 func readServer(localConn *net.TCPConn, serverConn *logic.TcpConnection) {
 	for {
+		fmt.Println("readServer")
 		if err := serverConn.ReadProtoBuffer(); err != nil {
 			fmt.Println("ReadProtoBuffer", err.Error())
 			continue
@@ -93,6 +92,7 @@ func readServer(localConn *net.TCPConn, serverConn *logic.TcpConnection) {
 		}
 		buffLen := int(dataLen)
 		data, err := serverConn.ReadData(buffLen)
+		fmt.Println("111111111111", buffLen, string(data), err)
 		if err == io.EOF {
 			continue
 		}

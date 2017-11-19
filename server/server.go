@@ -2,7 +2,6 @@ package server
 
 import (
 	"fmt"
-	"io"
 	"net"
 	"tcp_tunnel/config"
 	"tcp_tunnel/logic"
@@ -39,6 +38,7 @@ func NewTunnel(tcpConn *logic.TcpConnection) *Tunnel {
 }
 
 func server(tunnel *Tunnel) {
+	defer tunnel.tcpConnection.Close()
 	go tunnel.execCmd()
 	for {
 		select {
@@ -56,7 +56,7 @@ func (tunnel *Tunnel) execCmd() {
 		if err := tipRequest.ReadFrom(tunnel.tcpConnection); err != nil {
 			continue
 		}
-		fmt.Println("execCmd", tipRequest.DestIpToString(), tipRequest.DestPortToString(), tipRequest.Data)
+		fmt.Println("execCmd", tipRequest.Opcode, tipRequest.DestIpToString(), tipRequest.DestPortToString(), tipRequest.Data, tunnel.connectedDest)
 		switch tipRequest.Opcode {
 		case logic.OpcodeTransmit:
 			if tunnel.connectedDest == false {
@@ -67,21 +67,24 @@ func (tunnel *Tunnel) execCmd() {
 					tunnel.quitSignal <- struct{}{}
 					return
 				}
+				defer tunnel.destTcpConnection.Close()
 				tunnel.connectedDest = true
 				go tunnel.serveRead()
 			}
-			tunnel.destTcpConnection.Write(tipRequest.Data)
+			fmt.Println("exeeeeeeee", string(tipRequest.Data), len(tipRequest.Data))
+			_, err := tunnel.destTcpConnection.Write(tipRequest.Data)
+			if err != nil {
+				fmt.Println("xxxxxxxxxxxxxxxxxx", err)
+				tunnel.quitSignal <- struct{}{}
+				return
+			}
 		}
 	}
 }
 
 func (tunnel *Tunnel) serveRead() {
 	for {
-		buff := make([]byte, logic.ReadBuffLen)
-		_, err := tunnel.destTcpConnection.Read(buff)
-		if err == io.EOF {
-			continue
-		}
+		buff, err := logic.ChunkRead(tunnel.destTcpConnection)
 		if err != nil {
 			tunnel.quitSignal <- struct{}{}
 			return

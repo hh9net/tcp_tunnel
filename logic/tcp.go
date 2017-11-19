@@ -37,6 +37,7 @@ func NewTcpContection(tcpConn *net.TCPConn) *TcpConnection {
 
 func (tc *TcpConnection) ReadProtoBuffer() error {
 	left := TcpProtoBufferLen
+	tc.protoBuffer = make([]byte, TcpProtoBufferLen)
 	for left > 0 {
 		n, err := tc.TCPConn.Read(tc.protoBuffer)
 		fmt.Println("ReadProtoBuffer", n, err, left, len(tc.protoBuffer), tc.protoBuffer)
@@ -48,6 +49,9 @@ func (tc *TcpConnection) ReadProtoBuffer() error {
 		}
 		if n > 0 {
 			left -= n
+		}
+		if n <= TcpProtoBufferLen {
+			return nil
 		}
 	}
 	return nil
@@ -127,4 +131,28 @@ func NewTcpConn(ip, port string) (*net.TCPConn, error) {
 		return nil, errors.New("dial failed.")
 	}
 	return tcpConn, nil
+}
+
+func ChunkRead(tcpConn *net.TCPConn) ([]byte, error) {
+	fmt.Println("chunkread start")
+	chunk := make([]byte, 0, ReadBuffLen)
+	for {
+		buff := make([]byte, ReadBuffLen)
+		n, err := tcpConn.Read(buff)
+		fmt.Println("chunk", n, err)
+		if err == io.EOF {
+			return chunk, nil
+		}
+		if err != nil {
+			return chunk, err
+		}
+		if n > 0 {
+			chunk = append(chunk, buff...)
+		}
+		if n <= ReadBuffLen {
+			return chunk, nil
+		}
+	}
+	fmt.Println("chunk end")
+	return chunk, nil
 }
